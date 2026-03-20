@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .bootstrap import prepare_environment
 from .browser import CDPConnector, PersistentContextConnector
+from .constants import resolved_ollama_model
 from .filler import apply_fill_plan
 from .form_extract import extract_form_schema
 from .llm import get_fill_plan
@@ -17,12 +19,34 @@ from .models import FormSchema
 
 
 def load_user_data(data_source: str) -> str | dict:
-    """Load user data from JSON file path or inline JSON string."""
+    """Load user facts from a file path or inline string.
+
+    - If ``data_source`` points to an existing file, reads UTF-8 text from it.
+    - Otherwise treats ``data_source`` as inline content (CLI paste).
+    - If the text parses as JSON **object**, returns a ``dict`` (structured facts).
+    - If it parses as JSON array/number/string/bool, returns a pretty-printed JSON
+      string for the LLM.
+    - If parsing fails, returns the **raw text** (plain prose, notes, resume
+      snippet, etc.) — same flexibility as pasting unstructured text into a chat.
+    """
     path = Path(data_source)
     if path.is_file():
-        text = path.read_text()
-        return json.loads(text)
-    return json.loads(data_source)
+        text = path.read_text(encoding="utf-8")
+    else:
+        text = data_source
+
+    stripped = text.strip()
+    if not stripped:
+        return ""
+
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError:
+        return text if path.is_file() else data_source
+
+    if isinstance(parsed, dict):
+        return parsed
+    return json.dumps(parsed, indent=2)
 
 
 def run(
@@ -33,7 +57,7 @@ def run(
     cdp_url: str = "http://localhost:9222",
     user_data_dir: str | None = None,
     channel: str = "chrome",
-    model: str = "llama3.2",
+    model: str | None = None,
     submit: bool = False,
 ) -> FormSchema:
     """
@@ -51,6 +75,9 @@ def run(
     else:
         raise ValueError("Either use_cdp=True or user_data_dir must be set")
 
+    m = resolved_ollama_model(model)
+    prepare_environment(m, use_playwright=True, need_ollama=True)
+
     try:
         browser_or_ctx, page = connector.connect()
         page.goto(url, wait_until="domcontentloaded")
@@ -60,7 +87,7 @@ def run(
         if not schema.fields:
             return schema
 
-        plan = get_fill_plan(schema, user_data, model=model)
+        plan = get_fill_plan(schema, user_data, model=m)
         apply_fill_plan(page, schema, plan)
 
         if submit:

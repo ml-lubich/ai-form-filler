@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.10.11,<0.11.0"]
+build-backend = "uv_build"
 
 [project]
 name = "ai-form-filler"
-version = "0.2.0"
+version = "0.2.1"
 description = "Lightweight AI-powered form filler using Playwright and Ollama; works with your own browser."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,12 +26,25 @@ stealth = [
     "selenium>=4.15",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio>=0.21",
+]
+
 [project.scripts]
 ai-form-filler = "ai_form_filler.cli:main"
+ai-filler = "ai_form_filler.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv]
+default-groups = ["dev"]
+# Copy into site-packages (helps avoid broken installs when cache/symlinks misbehave).
+link-mode = "copy"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: needs Playwright Chromium (extract + fill in a real browser; no Ollama)",
+]

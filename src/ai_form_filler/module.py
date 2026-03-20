@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import Literal
 
+from .bootstrap import prepare_environment
 from .browser import CDPConnector, PersistentContextConnector
 from .browser_uc import UndetectedChromeConnector
+from .constants import resolved_ollama_model
 from .filler import apply_fill_plan
 from .form_extract import extract_form_schema, extract_form_schema_selenium
 from .llm import get_fill_plan, infer_navigation_intent
@@ -26,7 +28,7 @@ class AIFormModule:
 
     def __init__(
         self,
-        model: str = "llama3.2",
+        model: str | None = None,
         backend: Backend = "playwright_cdp",
         *,
         cdp_url: str = "http://localhost:9222",
@@ -36,7 +38,7 @@ class AIFormModule:
         uc_user_data_dir: str | None = None,
         uc_browser_executable_path: str | None = None,
     ) -> None:
-        self.model = model
+        self.model = resolved_ollama_model(model)
         self.backend = backend
         self.cdp_url = cdp_url
         self.user_data_dir = user_data_dir
@@ -44,6 +46,13 @@ class AIFormModule:
         self.uc_headless = uc_headless
         self.uc_user_data_dir = uc_user_data_dir
         self.uc_browser_executable_path = uc_browser_executable_path
+
+    def _prepare(self, *, need_ollama: bool, use_playwright: bool) -> None:
+        prepare_environment(
+            self.model,
+            use_playwright=use_playwright,
+            need_ollama=need_ollama,
+        )
 
     def infer_navigation(
         self,
@@ -53,6 +62,11 @@ class AIFormModule:
         current_url: str | None = None,
     ) -> NavigationIntent:
         """Use the local LLM to infer which URL to open for ``goal``."""
+        # Install Playwright browser for Playwright backends (e.g. CLI --dry-run --goal before CDP).
+        self._prepare(
+            need_ollama=True,
+            use_playwright=self.backend != "undetected_chrome",
+        )
         return infer_navigation_intent(
             goal,
             hints=hints,
@@ -78,6 +92,10 @@ class AIFormModule:
         submit: bool = False,
     ) -> FormSchema:
         """Navigate to ``url``, extract form, get fill plan from Ollama, apply fills."""
+        self._prepare(
+            need_ollama=True,
+            use_playwright=self.backend != "undetected_chrome",
+        )
         if self.backend == "undetected_chrome":
             return self._fill_at_url_selenium(url, user_data, submit=submit)
         return self._fill_at_url_playwright(url, user_data, submit=submit)

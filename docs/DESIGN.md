@@ -19,8 +19,9 @@
 
 ## LLM mapping (what to fill)
 
-- Prompt includes the form schema (one line per field: key, tag, type, name, id, placeholder, label, options) and the user’s data (JSON or free text).
-- The model is asked to output **only** a JSON object mapping field keys to values (no markdown or explanation).
+- Prompt includes the form schema (one line per field: key, tag, type, name, id, placeholder, label, options) and the user’s data (**plain text or JSON object**, loaded by `load_user_data` in `run.py`).
+- **Semantic inference (not “known fields”)**: the user’s JSON is a **vault of facts** (whatever keys they like). The extractor already produced stable **schema keys** from the DOM (`name` / `id` / `field_N`). The LLM’s job is the same as if someone pasted the form plus their details into ChatGPT: decide **which fact goes to which field** using labels, placeholders, types, and options. Output keys must still be those schema keys so Playwright/Selenium can apply the plan.
+- The model is asked to output **only** a JSON object mapping schema field keys to values (no markdown or explanation).
 - Response is parsed with optional stripping of markdown code fences; then `json.loads()` to obtain the fill plan. Unknown keys are ignored at fill time; missing keys are simply not filled.
 
 ## Filling
@@ -40,6 +41,17 @@
 ## CLI and data
 
 - First positional: URL. Second positional: optional data (file path or inline JSON).
-- If data is omitted and `--dry-run` is set, only extraction runs and the schema is printed.
+- If data is omitted and `--dry-run` is set, only extraction runs and the schema is printed (field-mapping LLM is skipped; with `--goal`, navigation LLM still runs to choose the URL).
 - Connection mode: `--undetected` → undetected Chrome; else if `--user-data-dir` → Playwright persistent context; else CDP with `--cdp-url`.
-- If `--goal` is set, navigation LLM runs first (unless using dry-run without goal — then URL is required).
+- For `--dry-run` without `--goal`, a **URL** is required (no navigation inference).
+
+## Why DOM + LLM mapping (not screenshots / OpenClaw-style clicks)
+
+This tool is intentionally **form-shaped**: it reads **structured fields** from the page, asks the LLM to **map your JSON** to those keys, then fills via stable locators (id / name / label). That path is **more reliable** for standard forms than:
+
+- **Vision loops** (screenshot → multimodal model → click coordinates): fragile across DPI, themes, scroll, and popups; needs a vision-capable model and large prompts; hard to test deterministically.
+- **General “click anything” agents**: broad scope, high brittleness, and different security/review surface.
+
+**User data** should live in one JSON file (see `examples/my-form-data.example.json` in the repo); the LLM’s job is **semantic alignment** (infer which facts fill which detected fields — like ChatGPT reading a pasted form), not matching `name=` attributes by hand and not guessing pixels.
+
+A future **separate** project or optional plugin could add screenshot-assisted recovery for edge cases; it is **out of scope** for the core package so this codebase stays small, testable, and KISS.

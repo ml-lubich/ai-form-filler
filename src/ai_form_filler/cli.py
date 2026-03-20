@@ -3,24 +3,52 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Literal
 
+from .bootstrap import bootstrap_cli
+from .constants import DEFAULT_OLLAMA_MODEL, resolved_ollama_model
 from .module import AIFormModule
+from .run import load_user_data
 
 BackendName = Literal["playwright_cdp", "playwright_profile", "undetected_chrome"]
-from .run import load_user_data
+
+
+def _normalized_url(url: str | None) -> str | None:
+    """Treat empty or lone '-' (common typo) as no URL."""
+    if url is None:
+        return None
+    s = url.strip()
+    if s == "" or s == "-":
+        return None
+    return url
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "AI-powered form filler (Playwright + Ollama). "
-            "Use --goal so the local LLM infers which URL to open, or pass a URL directly. "
-            "Optional undetected-chromedriver backend: pip install '.[stealth]' --undetected."
-        )
+            "Run with no arguments (or --bootstrap) once to install Chromium and pull the default Ollama model. "
+            "Then pass a URL and data, or use --goal. "
+            "Undetected Chrome: uv sync --extra stealth (or pip install '.[stealth]') then --undetected."
+        ),
+        epilog=(
+            "Examples:  ai-form-filler\n"
+            "           ai-form-filler --bootstrap\n"
+            "           ai-form-filler https://example.com/form data.json"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Install Playwright Chromium, ensure Ollama CLI/model, then exit",
+    )
+    parser.add_argument(
+        "--no-auto-setup",
+        action="store_true",
+        help="Skip automatic Playwright/Ollama pull (for CI or custom images)",
     )
     parser.add_argument(
         "url",
@@ -32,7 +60,7 @@ def main() -> None:
         "data",
         nargs="?",
         default=None,
-        help='JSON file or inline JSON (e.g. {"email":"a@b.com"})',
+        help="Path to a UTF-8 file or inline string: JSON object, or any plain text the LLM should read",
     )
     parser.add_argument(
         "--goal",
@@ -84,8 +112,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--model",
-        default="llama3.2",
-        help="Ollama model (default: llama3.2); e.g. qwen2.5",
+        default=None,
+        metavar="NAME",
+        help=(
+            f"Ollama model tag (default: {DEFAULT_OLLAMA_MODEL!r} or env AI_FORM_FILLER_MODEL). "
+            "Examples: llama3.2, mistral, gemma3, qwen2.5:7b"
+        ),
     )
     parser.add_argument(
         "--submit",
@@ -98,13 +130,36 @@ def main() -> None:
         help="Extract and print form schema only (no fill). With --goal, still runs navigation LLM.",
     )
     args = parser.parse_args()
+    url = _normalized_url(args.url)
 
-    if not args.url and not args.goal:
-        print("Error: provide a URL or --goal", file=sys.stderr)
+    if args.bootstrap:
+        bootstrap_cli(verbose=True)
+        return
+
+    if (
+        url is None
+        and args.data is None
+        and not args.goal
+        and not args.dry_run
+        and not args.no_auto_setup
+    ):
+        bootstrap_cli(verbose=True)
+        return
+
+    if args.no_auto_setup:
+        import os
+
+        os.environ["AI_FORM_FILLER_SKIP_AUTO_PREPARE"] = "true"
+
+    if not url and not args.goal:
+        print("Error: provide a URL or --goal (or run with no args to set up)", file=sys.stderr)
         sys.exit(1)
 
     if args.data is None and not args.dry_run:
-        print("Error: data (JSON file or inline JSON) required unless --dry-run", file=sys.stderr)
+        print(
+            "Error: data required unless --dry-run (JSON file, text file, or inline text/JSON)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     hints: str | None = args.hints
@@ -119,7 +174,7 @@ def main() -> None:
     if args.data:
         try:
             user_data = load_user_data(args.data)
-        except (json.JSONDecodeError, OSError) as e:
+        except OSError as e:
             print(f"Error loading data: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -141,7 +196,7 @@ def main() -> None:
 
     try:
         if args.dry_run:
-            target_url = args.url
+            target_url = url
             if args.goal:
                 intent = module.infer_navigation(
                     args.goal,
@@ -198,8 +253,8 @@ def main() -> None:
                 submit=args.submit,
             )
         else:
-            assert args.url is not None
-            schema = module.fill_at_url(args.url, user_data, submit=args.submit)
+            assert url is not None
+            schema = module.fill_at_url(url, user_data, submit=args.submit)
         print(f"Filled {len(schema.fields)} field(s).")
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

@@ -4,7 +4,7 @@
 
 - **Domain**: Pure data and types in `models.py` (FormField, FormSchema, FillAction, FillPlan). No I/O.
 - **Application**: Orchestration and use cases: `form_extract.py` (extract schema from page), `llm.py` (Ollama → fill plan), `filler.py` (apply plan to page), `run.py` (connect → navigate → extract → plan → fill).
-- **Infrastructure / Adapters**: `browser.py` (Playwright: CDP vs persistent context), `browser_uc.py` (undetected-chromedriver), `filler_selenium.py`, `form_fields_js.py` (shared extract script), `cli.py` (argparse → `AIFormModule`).
+- **Infrastructure / Adapters**: `browser.py` (Playwright: CDP vs persistent context), `browser_uc.py` (undetected-chromedriver), `filler_selenium.py`, `form_fields_js.py` (shared extract script), `cli.py` (argparse → `AIFormModule`), `env_config.py` (strict `true`/`false` parsing for env toggles), `bootstrap.py` (Playwright/Ollama prep).
 
 ## Component diagram
 

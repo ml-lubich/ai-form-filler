@@ -32,8 +32,8 @@
 - **extract_form_schema(page: Page) -> FormSchema**  
   Extracts fillable form fields from the current page.
 
-- **get_fill_plan(schema: FormSchema, user_data: str | dict, model: str = "llama3.2") -> FillPlan**  
-  Calls Ollama to produce a key → value mapping; returns a FillPlan.
+- **get_fill_plan(schema: FormSchema, user_data: str | dict, model: str | None = None) -> FillPlan**  
+  Calls Ollama to infer which user facts belong in which extracted fields (schema keys → values); returns a FillPlan. Model defaults to `AI_FORM_FILLER_MODEL` or `DEFAULT_OLLAMA_MODEL` (`qwen2.5`).
 
 - **apply_fill_plan(page: Page, schema: FormSchema, plan: FillPlan) -> None**  
   Applies each action to the page (fill, check, select_option).
@@ -67,10 +67,14 @@
 ai-form-filler [url] [data] [options]
 ```
 
+Same executable is also available as **`ai-filler`**.
+
+**No URL, no `--goal`, no `--dry-run`:** runs **bootstrap** (Playwright Chromium + default Ollama model), same as **`--bootstrap`**, unless **`--no-auto-setup`** is set (then the CLI errors until you pass a run).
+
 **Arguments**
 
-- `url`: Optional if `--goal` is set.
-- `data`: Optional with `--dry-run` only. Otherwise JSON file or inline JSON.
+- `url`: Optional if `--goal` is set. A lone **`-`** is treated as “no URL” (runs bootstrap when nothing else is passed).
+- `data`: Optional with `--dry-run` only. Otherwise a UTF-8 file path or inline string: valid JSON object becomes structured input; any other text is sent to the mapping LLM as raw prose.
 
 **Options**
 
@@ -82,7 +86,9 @@ ai-form-filler [url] [data] [options]
 - `--cdp-url`: CDP endpoint (default: `http://localhost:9222`).
 - `--user-data-dir DIR`: Playwright persistent Chrome profile.
 - `--channel`: Browser channel for persistent context (default: `chrome`).
-- `--model`: Ollama model (default: `llama3.2`).
+- `--model`: Ollama model tag (default: `qwen2.5` or `AI_FORM_FILLER_MODEL`).
+- `--bootstrap`: Install Playwright Chromium + pull default model, exit.
+- `--no-auto-setup`: Skip automatic Playwright / `ollama pull` / **auto `ollama serve`** (same as `AI_FORM_FILLER_SKIP_AUTO_PREPARE=true`).
 - `--submit`: Click submit after filling.
 - `--dry-run`: Print form schema; skips field-mapping LLM; with `--goal`, still runs navigation LLM.
 
@@ -94,5 +100,8 @@ ai-form-filler [url] [data] [options]
 ## Package import
 
 ```python
-from ai_form_filler import AIFormModule
+from ai_form_filler import AIFormModule, DEFAULT_OLLAMA_MODEL, resolved_ollama_model
 ```
+
+- **`DEFAULT_OLLAMA_MODEL`**: built-in default Ollama tag when CLI/env do not override.
+- **`resolved_ollama_model(explicit)`**: returns CLI/explicit value if set, else `AI_FORM_FILLER_MODEL`, else `DEFAULT_OLLAMA_MODEL`.

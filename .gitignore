@@ -1,7 +1,8 @@
-# Virtual env
+# Virtual env / uv
 .venv/
 venv/
 env/
+.uv/
 
 # Python
 __pycache__/
@@ -25,3 +26,6 @@ htmlcov/
 
 # Plan (temporary)
 tmp/
+
+# Local secrets: copy from examples/my-form-data.example.json
+my-form-data.json

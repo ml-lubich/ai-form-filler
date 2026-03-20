@@ -6,7 +6,7 @@ AI Form Filler is a lightweight tool that fills web forms using a local LLM (Oll
 
 - Work with **most forms**: standard inputs, textareas, selects, checkboxes, radios.
 - Use **your browser**: existing session (CDP) or your Chrome profile (persistent context).
-- **Lightweight**: minimal dependencies, no heavy framework; similar idea to OpenClaw-style browser automation but focused on form filling only.
+- **Lightweight**: minimal dependencies, no heavy framework; **DOM + local LLM** for filling — not a vision/screenshot agent (see [DESIGN.md](DESIGN.md) for why).
 - **Local-first**: Ollama (or compatible) for mapping data to fields; no required cloud APIs.
 
 ## High-level flow
@@ -14,9 +14,9 @@ AI Form Filler is a lightweight tool that fills web forms using a local LLM (Oll
 1. **Connect**: CDP to your Chrome, Playwright persistent profile, or optional **undetected-chromedriver** (Selenium) for a stealthier launch.
 2. **Navigate (optional LLM)**: Either open a URL you provide, or ask the local LLM for a **navigation intent** (`url` + `reason`) from a natural-language **goal** and optional **hints**.
 3. **Extract**: Run shared JS in the page to collect fillable form fields (key, tag, type, name, id, placeholder, label, options).
-4. **Plan (fill)**: Send the form schema and the user’s data (JSON) to Ollama; the LLM returns a mapping from field keys to values (fill plan).
+4. **Plan (fill)**: Send the extracted schema and the user’s **fact vault** (JSON or prose) to Ollama; the LLM **infers** which values belong in which fields (like interpreting a pasted form + profile), outputting schema-key → value (fill plan).
 5. **Fill**: Apply the plan via Playwright locators or Selenium element APIs.
-6. **Optional**: Click submit.
+6. **Optional**: Click submit (`--submit`). **Log in first** in the same browser (CDP window or persistent profile); the tool does not replace your session — it drives the page after you are signed in.
 
 ## AI module
 

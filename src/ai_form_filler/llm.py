@@ -7,6 +7,7 @@ import re
 
 from ollama import chat
 
+from .constants import resolved_ollama_model
 from .models import FillAction, FillPlan, FormSchema, NavigationIntent
 
 
@@ -17,20 +18,21 @@ def build_mapping_prompt(schema: FormSchema, user_data: str | dict) -> str:
         data_text = json.dumps(user_data, indent=2)
     else:
         data_text = user_data.strip()
-    return f"""You are a form-filling assistant. Given a form schema and data to fill, output a JSON object that maps each form field key to the value to fill. Use only the field keys listed in the schema.
+    return f"""You are a form-filling assistant. The user did not pre-match their data to this site: you see the real form (labels, placeholders, types, options) and a blob of facts (JSON or prose). Infer which value belongs in which field the same way you would if they pasted the form and their details into a chat: use meaning, not string equality on attribute names.
 
-Form schema (each line is one field; key= is the identifier to use):
+Form schema (each line is one field; key= is the **only** identifier you may use in your output — it is an internal id from the page, not something the user typed):
 {schema_text}
 
-Data to fill into the form:
+Facts / data to apply (may be unstructured prose, bullets, or a JSON object; your job is semantic alignment):
 {data_text}
 
 Rules:
-- Output ONLY a single JSON object: {{ "key1": value1, "key2": value2, ... }}. No markdown, no explanation.
-- Use the exact field keys from the schema (key=...).
+- Output ONLY a single JSON object: {{ "schema_field_key": value, ... }}. No markdown, no explanation.
+- Keys in your JSON must be **exactly** the key= values from the schema (so the automation can locate fields). Values are what the user would reasonably enter.
+- Infer mappings from label, placeholder, input type, and option text; extract values from prose when needed; combine multiple hints into one field when appropriate (e.g. full name from first + last).
 - For checkboxes use true/false.
-- For selects/radios use the option value (from options list) that best matches the data.
-- Omit fields that have no matching data.
+- For selects/radios use the option **value** (from options list) that best matches the data.
+- Omit schema keys you cannot support honestly from the given facts (do not invent PII).
 """
 
 
@@ -100,12 +102,13 @@ def infer_navigation_intent(
     *,
     hints: str | None = None,
     current_url: str | None = None,
-    model: str = "llama3.2",
+    model: str | None = None,
 ) -> NavigationIntent:
     """Ask Ollama which URL to open for the given goal."""
+    m = resolved_ollama_model(model)
     prompt = build_navigation_prompt(goal, hints, current_url)
     response = chat(
-        model=model,
+        model=m,
         messages=[{"role": "user", "content": prompt}],
     )
     content = response.get("message", {}).get("content", "")
@@ -114,11 +117,12 @@ def infer_navigation_intent(
     return parse_navigation_intent(content)
 
 
-def get_fill_plan(schema: FormSchema, user_data: str | dict, model: str = "llama3.2") -> FillPlan:
+def get_fill_plan(schema: FormSchema, user_data: str | dict, model: str | None = None) -> FillPlan:
     """Call Ollama to compute fill plan from form schema and user data."""
+    m = resolved_ollama_model(model)
     prompt = build_mapping_prompt(schema, user_data)
     response = chat(
-        model=model,
+        model=m,
         messages=[{"role": "user", "content": prompt}],
     )
     content = response.get("message", {}).get("content", "")

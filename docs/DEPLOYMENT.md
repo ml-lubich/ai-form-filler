@@ -82,6 +82,14 @@ uv sync --no-editable --extra stealth
 # or: pip install -e ".[stealth]"
 ```
 
+The **`stealth`** extra includes **`setuptools`** so **`undetected-chromedriver`** can import **`distutils`** on **Python 3.12+** (including **3.14**, where the stdlib removed it).
+
+**Headed Chrome** is the default for **`--undetected`** (`headless=False`). Example smoke test (extract only, no Ollama fill):
+
+```bash
+uv run ai-form-filler --undetected --dry-run "https://httpbin.org/forms/post"
+```
+
 ## Chrome CDP (your running browser)
 
 - macOS: `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222`

@@ -198,6 +198,7 @@ ai-form-filler --goal "example.com contact" --dry-run --hints "https://example.c
 | `--current-url` | Optional context for navigation LLM |
 | `--undetected` | Use undetected-chromedriver (requires `.[stealth]`) |
 | `--uc-user-data-dir` | User data dir for undetected Chrome |
+| `--uc-version-main` | Chrome major version for driver match (default: auto-detect) |
 | `--cdp-url` | CDP endpoint (default: `http://localhost:9222`) |
 | `--user-data-dir` | Playwright persistent Chrome profile |
 | `--channel` | Browser channel for persistent context (default: `chrome`) |

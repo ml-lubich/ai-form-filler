@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "ai-form-filler"
-version = "0.2.1"
+version = "0.2.2"
 description = "Lightweight AI-powered form filler using Playwright and Ollama; works with your own browser."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,8 @@ dev = [
 stealth = [
     "undetected-chromedriver>=3.5",
     "selenium>=4.15",
+    # undetected-chromedriver imports distutils; setuptools supplies the shim on Python 3.12+ (incl. 3.14).
+    "setuptools>=75",
 ]
 
 [dependency-groups]

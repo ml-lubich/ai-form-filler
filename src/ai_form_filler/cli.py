@@ -106,6 +106,13 @@ def main() -> None:
         help="Undetected Chrome: optional user data dir",
     )
     parser.add_argument(
+        "--uc-version-main",
+        metavar="N",
+        type=int,
+        default=None,
+        help="Undetected Chrome: Chrome major version (e.g. 146); default: detect from chrome --version",
+    )
+    parser.add_argument(
         "--channel",
         default="chrome",
         help="Playwright persistent context channel (default: chrome)",
@@ -192,6 +199,7 @@ def main() -> None:
         user_data_dir=args.user_data_dir,
         channel=args.channel,
         uc_user_data_dir=args.uc_user_data_dir,
+        uc_version_main=args.uc_version_main,
     )
 
     try:
@@ -213,7 +221,10 @@ def main() -> None:
                 from .browser_uc import UndetectedChromeConnector
                 from .form_extract import extract_form_schema_selenium
 
-                conn = UndetectedChromeConnector(user_data_dir=args.uc_user_data_dir)
+                conn = UndetectedChromeConnector(
+                    user_data_dir=args.uc_user_data_dir,
+                    version_main=args.uc_version_main,
+                )
                 try:
                     driver = conn.connect()
                     driver.get(target_url)

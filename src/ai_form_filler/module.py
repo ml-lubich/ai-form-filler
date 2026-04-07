@@ -37,6 +37,7 @@ class AIFormModule:
         uc_headless: bool = False,
         uc_user_data_dir: str | None = None,
         uc_browser_executable_path: str | None = None,
+        uc_version_main: int | None = None,
     ) -> None:
         self.model = resolved_ollama_model(model)
         self.backend = backend
@@ -46,6 +47,7 @@ class AIFormModule:
         self.uc_headless = uc_headless
         self.uc_user_data_dir = uc_user_data_dir
         self.uc_browser_executable_path = uc_browser_executable_path
+        self.uc_version_main = uc_version_main
 
     def _prepare(self, *, need_ollama: bool, use_playwright: bool) -> None:
         prepare_environment(
@@ -169,6 +171,7 @@ class AIFormModule:
             headless=self.uc_headless,
             user_data_dir=self.uc_user_data_dir,
             browser_executable_path=self.uc_browser_executable_path,
+            version_main=self.uc_version_main,
         )
         try:
             driver = connector.connect()

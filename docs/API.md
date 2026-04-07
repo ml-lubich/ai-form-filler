@@ -83,6 +83,7 @@ Same executable is also available as **`ai-filler`**.
 - `--current-url`: Optional context for navigation LLM.
 - `--undetected`: Use undetected-chromedriver (requires `.[stealth]`).
 - `--uc-user-data-dir`: Chrome user data dir for undetected mode.
+- `--uc-version-main`: Chrome major version for undetected-chromedriver (default: detect via `chrome --version`).
 - `--cdp-url`: CDP endpoint (default: `http://localhost:9222`).
 - `--user-data-dir DIR`: Playwright persistent Chrome profile.
 - `--channel`: Browser channel for persistent context (default: `chrome`).

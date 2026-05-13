@@ -84,6 +84,7 @@ flowchart TB
 - [Data format](#data-format)
 - [Documentation](#docs)
 - [License](#license)
+- [🗺️ Repository map](#️-repository-map)
 
 ## Fill loop (sequence)
 
@@ -352,3 +353,36 @@ Minimal JSON example:
 ## License
 
 This project is licensed under the [MIT License](LICENSE). SPDX: `MIT` (see `pyproject.toml`).
+
+
+## 🗺️ Repository map
+
+Top-level layout of `ai-form-filler` rendered as a Mermaid mindmap (auto-generated from the on-disk tree).
+
+```mermaid
+mindmap
+  root((ai-form-filler))
+    docs/
+      API.md
+      ARCHITECTURE.md
+      DEPLOYMENT.md
+      DESIGN.md
+      OVERVIEW.md
+      REQUIREMENTS.md
+    examples/
+      my-form-data.example.json
+    src/
+      ai_form_filler
+      ai_form_filler.egg-info
+    tests/
+      __init__.py
+      conftest.py
+      test_bootstrap.py
+      test_cli.py
+      test_constants.py
+      test_env_config.py
+    files
+      LICENSE
+      README.md
+      pyproject.toml
+```

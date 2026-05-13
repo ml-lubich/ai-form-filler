@@ -2,9 +2,72 @@
 
 Lightweight AI-powered form filler that works with **your own browser** (no headless/dev browser). Uses **Playwright** for automation and **Ollama** (or Qwen, Llama, etc.) to **infer** what goes where: you pass **plain text or JSON** (file or inline); the tool reads the real form from the page (labels, placeholders, types) and the LLM decides what to type — same idea as pasting the form + your notes into ChatGPT, except the tool **types, optionally submits**, and can use **CDP or your Chrome profile** so you **log in once**, then run the CLI.
 
+```mermaid
+flowchart LR
+    DATA[("📄<br/>your facts<br/>JSON / text")]
+    URL(("🌐<br/>form URL"))
+    CLI{{"🧰 ai-form-filler<br/><code>cli.py</code>"}}
+    BROWSER["🪟 Your Chrome<br/><i>CDP or profile</i>"]
+    EXTRACT["🔍 form_extract<br/>labels + types"]
+    LLM["🤖 Ollama<br/><i>qwen2.5</i>"]
+    FILLER["⌨️ filler<br/>types into fields"]
+    SUBMIT[/"✅ optional submit"/]
+
+    DATA --> CLI
+    URL --> CLI
+    CLI --> BROWSER --> EXTRACT --> LLM
+    LLM -- "field → value map" --> FILLER --> BROWSER
+    FILLER --> SUBMIT
+
+    classDef io fill:#0e1116,stroke:#2f81f7,stroke-width:1.5px,color:#e6edf3;
+    classDef tool fill:#161b22,stroke:#3fb950,stroke-width:1.5px,color:#e6edf3;
+    classDef brain fill:#161b22,stroke:#d29922,stroke-width:1.5px,color:#e6edf3;
+    classDef out fill:#0e1116,stroke:#a371f7,stroke-width:1.5px,color:#e6edf3;
+    class DATA,URL io;
+    class CLI,BROWSER,EXTRACT,FILLER tool;
+    class LLM brain;
+    class SUBMIT out;
+```
+
+### Architecture at a glance
+
+```mermaid
+flowchart TB
+    subgraph CLIBOX["🧰 CLI · ai_form_filler.cli"]
+        ARGS["argparse + env_config<br/>--goal / --submit / --undetected"]
+        BOOT["bootstrap.py<br/>install Chromium + pull model"]
+    end
+    subgraph CORE["🧠 Core · ai_form_filler.module"]
+        MOD["AIFormModule<br/>orchestrator"]
+        RUN["run.py<br/>fill + submit loop"]
+    end
+    subgraph DRIVERS["🛠 Drivers"]
+        BR["browser.py<br/>Playwright CDP / persistent"]
+        BRUC["browser_uc.py<br/>undetected-chromedriver"]
+        FS["filler.py / filler_selenium.py"]
+        FE["form_extract.py + form_fields_js.py"]
+    end
+    subgraph BRAIN["🤖 LLM"]
+        L["llm.py · Ollama client"]
+        M["models.py · prompts + schemas"]
+    end
+    ARGS --> MOD
+    BOOT --> MOD
+    MOD --> RUN
+    RUN --> BR
+    RUN --> BRUC
+    BR --> FE --> L
+    BRUC --> FE
+    L --> M
+    L --> FS
+    FS --> BR
+    FS --> BRUC
+```
+
 ## Table of contents
 
 - [Quick start (KISS)](#quick-start-kiss)
+- [Architecture at a glance](#architecture-at-a-glance)
 - [Features](#features)
 - [Prototype flow](#prototype-flow)
 - [Default model](#default-model-and-using-any-ollama-model)

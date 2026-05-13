@@ -85,6 +85,7 @@ flowchart TB
 - [Documentation](#docs)
 - [License](#license)
 - [🗺️ Repository map](#️-repository-map)
+- [📊 Code composition](#-code-composition)
 
 ## Fill loop (sequence)
 
@@ -385,4 +386,19 @@ mindmap
       LICENSE
       README.md
       pyproject.toml
+```
+
+
+## 📊 Code composition
+
+File-type breakdown of source under this repo (skips `.git`, `node_modules`, build caches, lockfiles).
+
+```mermaid
+pie showData title File-type composition of ai-form-filler (47 files)
+    "Python" : 30
+    "Markdown" : 8
+    "Text" : 5
+    "Other" : 2
+    "TOML" : 1
+    "JSON" : 1
 ```

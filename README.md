@@ -68,6 +68,7 @@ flowchart TB
 
 - [Quick start (KISS)](#quick-start-kiss)
 - [Architecture at a glance](#architecture-at-a-glance)
+- [Fill loop (sequence)](#fill-loop-sequence)
 - [Features](#features)
 - [Prototype flow](#prototype-flow)
 - [Default model](#default-model-and-using-any-ollama-model)
@@ -83,6 +84,34 @@ flowchart TB
 - [Data format](#data-format)
 - [Documentation](#docs)
 - [License](#license)
+
+## Fill loop (sequence)
+
+```mermaid
+sequenceDiagram
+    participant U as user
+    participant CLI as ai-form-filler
+    participant BR as Chrome (CDP)
+    participant FE as form_extract
+    participant LLM as Ollama
+    participant FILL as filler
+
+    U->>CLI: ai-form-filler URL data.json
+    CLI->>BR: connect (CDP / profile)
+    CLI->>BR: goto URL
+    CLI->>FE: extract fields(page)
+    FE->>BR: form_fields_js
+    BR-->>FE: [{label, type, selector}]
+    FE-->>CLI: schema
+    CLI->>LLM: prompt(schema, data.json)
+    LLM-->>CLI: {selector: value} map
+    CLI->>FILL: fill(map)
+    FILL->>BR: type into fields
+    alt --submit
+        FILL->>BR: click submit
+    end
+    CLI-->>U: report (filled / submitted)
+```
 
 ## Quick start (KISS)
 
